@@ -18,6 +18,9 @@ class Gnuplot < Formula
     depends_on "libtool" => :build
   end
 
+  option "with-aquaterm", "Build with AquaTerm support (first: brew cask install aquaterm)"
+  option "with-wxmac", "Build with wxmac support"
+
   depends_on "pkg-config" => :build
   depends_on "gd"
   depends_on "libcerf"
@@ -25,10 +28,16 @@ class Gnuplot < Formula
   depends_on "pango"
   depends_on "qt"
   depends_on "readline"
+  depends_on "wxmac" => :optional
 
   def install
     # Qt5 requires c++11 (and the other backends do not care)
     ENV.cxx11
+
+    if build.with? "aquaterm"
+      ENV.prepend "CPPFLAGS", "-F/Library/Frameworks"
+      ENV.prepend "LDFLAGS", "-F/Library/Frameworks"
+    end
 
     args = %W[
       --disable-dependency-tracking
@@ -36,10 +45,12 @@ class Gnuplot < Formula
       --prefix=#{prefix}
       --with-readline=#{Formula["readline"].opt_prefix}
       --without-tutorial
-      --disable-wxwidgets
       --with-qt
       --without-x
     ]
+
+    args << "--disable-wxwidgets" if build.without? "wxmac"
+    args << (build.with?("aquaterm") ? "--with-aquaterm" : "--without-aquaterm")
 
     system "./prepare" if build.head?
     system "./configure", *args
