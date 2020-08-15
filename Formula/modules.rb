@@ -11,6 +11,11 @@ class Modules < Formula
     sha256 "e7684dbd641f7aaaab506df008d1c4caa41aa73f1a28631a461e0c671d23f5d9" => :high_sierra
   end
 
+  head do
+    url "https://github.com/cea-hpc/modules.git"
+    depends_on "autoconf" => :build
+  end
+
   def install
     args = %W[
       --prefix=#{prefix}
