@@ -1,9 +1,9 @@
 class Gnuplot < Formula
   desc "Command-driven, interactive function plotting"
   homepage "http://www.gnuplot.info/"
-  url "https://downloads.sourceforge.net/project/gnuplot/gnuplot/5.2.8/gnuplot-5.2.8.tar.gz"
-  sha256 "60a6764ccf404a1668c140f11cc1f699290ab70daa1151bb58fed6139a28ac37"
-
+  url "https://downloads.sourceforge.net/project/gnuplot/gnuplot/5.4.1/gnuplot-5.4.1.tar.gz"
+  sha256 "6b690485567eaeb938c26936e5e0681cf70c856d273cc2c45fabf64d8bc6590e"
+  license "gnuplot"
 
   head do
     url "https://git.code.sf.net/p/gnuplot/gnuplot-main.git"
@@ -13,7 +13,7 @@ class Gnuplot < Formula
     depends_on "libtool" => :build
   end
 
-  option "with-aquaterm", "Build with AquaTerm support (first: brew cask install aquaterm)"
+  option "with-aquaterm", "Build with AquaTerm support (first: brew install --cask aquaterm)"
   option "with-wxmac", "Build with wxmac support"
 
   depends_on "pkg-config" => :build
@@ -21,7 +21,7 @@ class Gnuplot < Formula
   depends_on "libcerf"
   depends_on "lua"
   depends_on "pango"
-  depends_on "qt"
+  depends_on "qt@5"
   depends_on "readline"
   depends_on "wxmac" => :optional
 
