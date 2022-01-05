@@ -1,21 +1,22 @@
 class Gnuplot < Formula
   desc "Command-driven, interactive function plotting"
   homepage "http://www.gnuplot.info/"
-  url "https://downloads.sourceforge.net/project/gnuplot/gnuplot/5.4.1/gnuplot-5.4.1.tar.gz"
-  sha256 "6b690485567eaeb938c26936e5e0681cf70c856d273cc2c45fabf64d8bc6590e"
+  url "https://downloads.sourceforge.net/project/gnuplot/gnuplot/5.4.2/gnuplot-5.4.2.tar.gz"
+  sha256 "e57c75e1318133951d32a83bcdc4aff17fed28722c4e71f2305cfc2ae1cae7ba"
   license "gnuplot"
 
   head do
-    url "https://git.code.sf.net/p/gnuplot/gnuplot-main.git"
+    url "https://git.code.sf.net/p/gnuplot/gnuplot-main.git", branch: "master"
 
     depends_on "autoconf" => :build
     depends_on "automake" => :build
     depends_on "libtool" => :build
   end
 
-  option "with-aquaterm", "Build with AquaTerm support (first: brew install --cask aquaterm)"
-  option "with-wxmac", "Build with wxmac support"
+  option "with-aquaterm", "Build with AquaTerm support (x86_64 only, first: brew install --cask aquaterm)"
+  option "with-wxwidgets", "Build with wxWidgets support"
 
+  depends_on arch: :x86_64 if build.with? "aquaterm"
   depends_on "pkg-config" => :build
   depends_on "gd"
   depends_on "libcerf"
@@ -23,7 +24,13 @@ class Gnuplot < Formula
   depends_on "pango"
   depends_on "qt@5"
   depends_on "readline"
-  depends_on "wxmac" => :optional
+  depends_on "wxwidgets" => :optional
+
+  on_linux do
+    depends_on "gcc"
+  end
+
+  fails_with gcc: "5"
 
   def install
     # Qt5 requires c++11 (and the other backends do not care)
@@ -44,7 +51,7 @@ class Gnuplot < Formula
       --without-x
     ]
 
-    args << "--disable-wxwidgets" if build.without? "wxmac"
+    args << "--disable-wxwidgets" if build.without? "wxwidgets"
     args << (build.with?("aquaterm") ? "--with-aquaterm" : "--without-aquaterm")
 
     system "./prepare" if build.head?
