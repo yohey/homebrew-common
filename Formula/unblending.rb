@@ -9,9 +9,14 @@ class Unblending < Formula
   depends_on "qt@5"
 
   def install
+    qt5lib = Formula["qt@5"].opt_lib
+
     args = std_cmake_args
     args << "-DUNBLENDING_BUILD_CLI_APP=ON"
     args << "-DUNBLENDING_BUILD_GUI_APP=ON"
+    args << "-DQt5_DIR:PATH=#{qt5lib}/cmake/Qt5"
+    args << "-DQt5Core_DIR:PATH=#{qt5lib}/cmake/Qt5Core"
+    args << "-DQt5Gui_DIR:PATH=#{qt5lib}/cmake/Qt5Gui"
 
     mkdir "Build" do
       system "cmake", *args, ".."
