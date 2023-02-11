@@ -1,25 +1,51 @@
 class MozcEmacsHelper < Formula
   desc "Mozc - a Japanese Input Method Editor designed for multi-platform"
   homepage "https://github.com/google/mozc.git"
-  url "https://github.com/google/mozc.git", :using => :git, :revision => "afb03ddfe72dde4cf2409863a3bfea160f7a66d8"
-  version "afb03dd"
+  url "https://github.com/google/mozc.git", :using => :git, :tag => "2.28.4880.102"
+  version "2.28.4880.102"
 
+  depends_on xcode: :build
+  depends_on "python@3.11" => :build
   depends_on "ninja" => :build
+  depends_on "six" => :build
+  uses_from_macos "curl" => :build
 
-  patch :p1 do
-    url "https://gist.githubusercontent.com/10sr/f5719ec8c2e42eb12fcb51b9a33d1505/raw/633ab51170fd2e8b71a03139464c79fe46209894/mozc_emacs_helper.patch"
-    sha256 "7ed609badf38bb572291b46821447247e67844f36a338f7e6126753a3fd93aa4"
-  end
+  patch :DATA
 
   def install
-    version = `xcodebuild -version -sdk macosx SDKVersion`.chomp
-    ENV["GYP_DEFINES"] = "mac_sdk=#{version} mac_deployment_target=#{version}"
+    target = `xcodebuild -version -sdk macosx SDKVersion`.chomp
+    ENV["GYP_DEFINES"] = "mac_sdk=#{target} mac_deployment_target=#{target}"
 
     cd "src" do
-      system "python2", "build_mozc.py", "gyp", "--noqt", "--branding=GoogleJapaneseInput"
-      system "python2", "build_mozc.py", "build", "-c", "Release", "unix/emacs/emacs.gyp:mozc_emacs_helper"
+      system "curl", "-sL", "-o", "third_party/abseil-cpp/absl/base/integral_types.h",
+             "https://raw.githubusercontent.com/google/s2geometry/e5eb2c38582392888e48e5b982add6aafa94f0c8/src/s2/third_party/absl/base/integral_types.h"
+      system "python", "build_mozc.py", "gyp", "--noqt", "--branding=GoogleJapaneseInput"
+      system "python", "build_mozc.py", "build", "-c", "Release", "unix/emacs/emacs.gyp:mozc_emacs_helper"
     end
 
     bin.install Dir["src/out_mac/Release/mozc_emacs_helper"]
   end
 end
+
+__END__
+--- a/src/build_mozc.py
++++ b/src/build_mozc.py
+@@ -165,6 +165,8 @@ def GetGypFileNames(options):
+     if not PkgExists('ibus-1.0 >= 1.4.1'):
+       logging.info('removing ibus.gyp.')
+       gyp_file_names.remove('%s/unix/ibus/ibus.gyp' % SRC_DIR)
++  elif options.target_platform == 'Mac':
++    gyp_file_names.extend(glob.glob('%s/unix/emacs/*.gyp' % SRC_DIR))
+   gyp_file_names.sort()
+   return gyp_file_names
+ 
+--- a/src/mac/mac.gyp
++++ b/src/mac/mac.gyp
+@@ -519,7 +519,6 @@
+             ['branding=="GoogleJapaneseInput"', {
+               'dependencies': [
+                 'DevConfirmPane',
+-                'codesign_client',
+               ],
+             }],
+           ],
