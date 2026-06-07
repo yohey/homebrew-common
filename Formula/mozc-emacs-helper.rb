@@ -1,60 +1,115 @@
 class MozcEmacsHelper < Formula
   desc "Mozc - a Japanese Input Method Editor designed for multi-platform"
   homepage "https://github.com/google/mozc.git"
-  url "https://github.com/google/mozc.git", :using => :git, :revision => "afb03ddfe72dde4cf2409863a3bfea160f7a66d8"
-  version "afb03dd"
+  url "https://github.com/google/mozc.git", tag: "3.33.6133"
+  version "3.33.6130.1" # to match the cask "google-japanese-ime"
 
-  depends_on "ninja" => :build
-  depends_on "pyenv" => :build
-  depends_on "openssl@1.1" => :build
-  depends_on "readline" => :build
-  depends_on "zlib" => :build
-  depends_on "bzip2" => :build
+  depends_on "bazelisk" => :build
+  depends_on "python@3.14" => :build
   depends_on xcode: :build
-
-  patch :p1 do
-    url "https://gist.githubusercontent.com/10sr/f5719ec8c2e42eb12fcb51b9a33d1505/raw/633ab51170fd2e8b71a03139464c79fe46209894/mozc_emacs_helper.patch"
-    sha256 "7ed609badf38bb572291b46821447247e67844f36a338f7e6126753a3fd93aa4"
-  end
 
   patch :DATA
 
   def install
-    ENV.append_path "PATH", HOMEBREW_PREFIX/"bin"
-    ENV.append_path "PATH", Pathname(`pyenv root`.chomp)/"shims"
+    xcode_ok, xcode_message = check_xcode
 
-    ENV.prepend "LDFLAGS",  "-L#{Formula["zlib"].opt_lib}"
-    ENV.prepend "CPPFLAGS", "-I#{Formula["zlib"].opt_include}"
-    ENV.prepend "LDFLAGS",  "-L#{Formula["bzip2"].opt_lib}"
-    ENV.prepend "CPPFLAGS", "-I#{Formula["bzip2"].opt_include}"
-
-    system "pyenv", "install", "-s", "2.7.18"
-    system "pyenv", "local", "2.7.18"
-
-    version = `xcodebuild -version -sdk macosx SDKVersion`.chomp
-    ENV["GYP_DEFINES"] = "mac_sdk=#{version} mac_deployment_target=#{version}"
-
-    path = Pathname(`xcodebuild -version -sdk macosx Path`.chomp)
-    ENV.prepend "CPPFLAGS", "-I#{path/"System/Library/Frameworks/CoreGraphics.framework/Versions/Current/Headers"}"
-
-    cd "src" do
-      system "python", "build_mozc.py", "gyp", "--noqt", "--branding=GoogleJapaneseInput"
-      system "python", "build_mozc.py", "build", "-c", "Release", "unix/emacs/emacs.gyp:mozc_emacs_helper"
+    if xcode_ok
+      ohai xcode_message.strip
+    else
+      odie xcode_message
     end
 
-    bin.install Dir["src/out_mac/Release/mozc_emacs_helper"]
+    cd "src" do
+      system "python3", "build_tools/update_deps.py",
+             "--noqt", "--noninja", "--nondk"
+
+      system "bazelisk", "build",
+             "//unix/emacs:mozc_emacs_helper",
+             "--config", "prod_macos",
+             "--config", "stable_channel",
+             "--config", "release_build",
+             "--macos_cpus", "arm64"
+    end
+
+    bin.install "src/bazel-bin/unix/emacs/mozc_emacs_helper"
+    pkgshare.install "src/unix/emacs/mozc.el"
+  end
+
+  def caveats
+    _xcode_ok, xcode_message = check_xcode
+    xcode_message
+  end
+
+  def check_xcode
+    require "open3"
+
+    xcode_stdout, xcode_stderr, xcode_status = Open3.capture3("xcodebuild", "-version")
+
+    if xcode_status.success?
+      return [
+        true,
+        <<~EOS
+          Xcode found:
+          #{xcode_stdout.strip}
+        EOS
+      ]
+    end
+
+    xcode_select_stdout, xcode_select_stderr, xcode_select_status = Open3.capture3("xcode-select", "-p")
+
+    current_developer_dir =
+      if xcode_select_status.success?
+        xcode_select_stdout.strip
+      else
+        "(failed to run xcode-select -p: #{xcode_select_stderr.strip})"
+      end
+
+    [
+      false,
+      <<~EOS
+        xcodebuild was not available.
+
+        Current active developer directory:
+          #{current_developer_dir}
+
+        This formula requires full Xcode for building.
+        Install Xcode from the App Store or Apple Developer site, then run:
+
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          sudo xcodebuild -license accept
+
+      EOS
+    ]
   end
 end
 
 __END__
---- a/src/base/mac_util.mm
-+++ b/src/base/mac_util.mm
-@@ -34,6 +34,8 @@
- #include <launch.h>
- #include <CoreFoundation/CoreFoundation.h>
- #include <IOKit/IOKitLib.h>
-+#include <CGWindow.h>
-+#include <CGWindowLevel.h>
+--- a/src/config.bzl
++++ b/src/config.bzl
+@@ -33,7 +33,7 @@
+ # The following command reverts it.
+ # % git update-index --no-assume-unchanged config.bzl
  
- #include "base/const.h"
- #include "base/logging.h"
+-BRANDING = "Mozc"
++BRANDING = "GoogleJapaneseInput"
+ 
+ BAZEL_TOOLS_PREFIX = "@bazel_tools"
+ 
+--- a/src/data/version/mozc_version_template.bzl
++++ b/src/data/version/mozc_version_template.bzl
+@@ -32,13 +32,13 @@ MAJOR = 3
+ MINOR = 33
+ 
+ # BUILD number used for the OSS version.
+-BUILD_OSS = 6133
++BUILD_OSS = 6130
+ 
+ # Number to be increased. This value may be replaced by other tools.
+ BUILD = BUILD_OSS
+ 
+ # Represent the platform and release channel.
+-REVISION = 100
++REVISION = 0
+ 
+ # LINT.IfChange
+ DEFAULT_BUILD_LABEL_MACOS = "%d.%d.%d.%d" % (MAJOR, MINOR, BUILD, REVISION + 1)
