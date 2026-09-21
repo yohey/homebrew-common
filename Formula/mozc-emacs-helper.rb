@@ -1,8 +1,8 @@
 class MozcEmacsHelper < Formula
   desc "Mozc - a Japanese Input Method Editor designed for multi-platform"
   homepage "https://github.com/google/mozc.git"
-  url "https://github.com/google/mozc.git", tag: "3.33.6133"
-  version "3.33.6130.1" # to match the cask "google-japanese-ime"
+  url "https://github.com/google/mozc.git", tag: "3.34.6239"
+  version "3.34.6260.1" # to match the cask "google-japanese-ime"
 
   depends_on "bazelisk" => :build
   depends_on "python@3.14" => :build
@@ -95,21 +95,14 @@ __END__
  
  BAZEL_TOOLS_PREFIX = "@bazel_tools"
  
---- a/src/data/version/mozc_version_template.bzl
-+++ b/src/data/version/mozc_version_template.bzl
-@@ -32,13 +32,13 @@ MAJOR = 3
- MINOR = 33
+--- a/src/version.bzl
++++ b/src/version.bzl
+@@ -32,7 +32,7 @@ MAJOR = 3
+ MINOR = 34
  
  # BUILD number used for the OSS version.
--BUILD_OSS = 6133
-+BUILD_OSS = 6130
+-BUILD_OSS = 6239
++BUILD_OSS = 6260
  
  # Number to be increased. This value may be replaced by other tools.
  BUILD = BUILD_OSS
- 
- # Represent the platform and release channel.
--REVISION = 100
-+REVISION = 0
- 
- # LINT.IfChange
- DEFAULT_BUILD_LABEL_MACOS = "%d.%d.%d.%d" % (MAJOR, MINOR, BUILD, REVISION + 1)
